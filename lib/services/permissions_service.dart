@@ -8,6 +8,7 @@ class PermissionsService {
       Permission.bluetoothScan,
       Permission.locationWhenInUse,
       Permission.storage,
+      Permission.location,
     ].request();
   }
 }
