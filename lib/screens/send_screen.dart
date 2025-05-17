@@ -11,6 +11,10 @@ class SendScreen extends StatefulWidget{
 class _SendScreenState extends State<SendScreen> {
   final Strategy strategy = Strategy.P2P_STAR;
   final Map<String, ConnectionInfo> connectedDevices = {};
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  List<String> messages = [];
+
 
   @override
   void initState() {
@@ -57,10 +61,27 @@ class _SendScreenState extends State<SendScreen> {
     );
   }
 
-  void sendMessageToAll(String message) {
-    final payload = Uint8List.fromList(message.codeUnits);
+  void sendMessageToAll() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    final payload = Uint8List.fromList(text.codeUnits);
     connectedDevices.forEach((id, _){
       Nearby().sendBytesPayload(id, payload);
+    });
+
+    setState(() {
+      messages.add("You: $text");
+    });
+
+    _messageController.clear();
+
+    Future.delayed(Duration(milliseconds: 100), () {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent, 
+        duration: Duration(milliseconds: 300), 
+        curve: Curves.easeOut,
+      );
     });
   }
 
@@ -78,10 +99,39 @@ class _SendScreenState extends State<SendScreen> {
       appBar: AppBar(title: Text('Send')),
       body: Column(
         children: [
-          Expanded(child: Center(child: Text("Advertising... waiting for devices")),),
-          Padding(padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton(onPressed: () => sendMessageToAll("Hello"), child: Text("Send Message to All"),),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(messages[index]),
+                );
+              },
+            ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      labelText: 'Type a message',
+                      border: OutlineInputBorder(),
+                    ),
+                  ), 
+                ),
+                SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: sendMessageToAll,
+                  color: Theme.of(context).primaryColor,
+                )
+              ],
+            )
+          )
         ],
       ),
     );
